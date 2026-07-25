@@ -651,7 +651,7 @@
           const arrayBuffer = await fileToSend.arrayBuffer();
           decoded = await decodeToMono16k(arrayBuffer);
         } catch (decodeErr) {
-          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try converting it to MP3 first — MP3 files over the size limit are chunked without decoding.');
+          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try converting it to MP3 first - MP3 files over the size limit are chunked without decoding.');
         }
         const { samples, sampleRate } = decoded;
         const chunkLen = CHUNK_SECONDS * sampleRate;
