@@ -247,15 +247,15 @@
 <div class="wrap">
   <div class="eyebrow">// audio → text</div>
   <h1>Transcribe</h1>
-  <p class="sub">Record from your mic or drop in a file. Runs on OpenAI's Whisper model — you'll need your own API key.</p>
+  <p class="sub">Record from your mic or drop in a file. Runs on Groq's Whisper model — you'll need your own Groq API key.</p>
 
   <div class="panel">
-    <label class="field-label" for="apiKey">OpenAI API key</label>
+    <label class="field-label" for="apiKey">Groq API key</label>
     <div class="key-row">
-      <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off">
+      <input type="password" id="apiKey" placeholder="gsk-..." autocomplete="off">
       <button class="action-btn" id="verifyBtn" style="flex:0 0 auto; padding:11px 14px;">Verify</button>
     </div>
-    <div class="key-note" id="keyStatus">Kept in this browser tab only. Never saved to disk, never sent anywhere but api.openai.com. Get one at platform.openai.com/api-keys.</div>
+    <div class="key-note" id="keyStatus">Kept in this browser tab only. Never saved to disk, never sent anywhere but api.groq.com. Get one at console.groq.com/keys.</div>
   </div>
 
   <div class="tabs">
@@ -328,7 +328,7 @@
   const downloadBtn = document.getElementById('downloadBtn');
   const verifyBtn = document.getElementById('verifyBtn');
   const keyStatus = document.getElementById('keyStatus');
-  const DEFAULT_KEY_NOTE = 'Kept in this browser tab only. Never saved to disk, never sent anywhere but api.openai.com. Get one at platform.openai.com/api-keys.';
+  const DEFAULT_KEY_NOTE = 'Kept in this browser tab only. Never saved to disk, never sent anywhere but api.groq.com. Get one at console.groq.com/keys.';
 
   verifyBtn.addEventListener('click', async () => {
     const key = apiKeyInput.value.trim();
@@ -339,10 +339,10 @@
     }
     verifyBtn.disabled = true;
     verifyBtn.textContent = 'Checking…';
-    keyStatus.textContent = 'Contacting OpenAI…';
+    keyStatus.textContent = 'Contacting Groq…';
     keyStatus.style.color = 'var(--text-muted)';
     try {
-      const res = await fetch('https://api.openai.com/v1/models', {
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
         headers: { 'Authorization': 'Bearer ' + key }
       });
       if (res.ok) {
@@ -356,7 +356,7 @@
         keyStatus.style.color = 'var(--danger)';
       }
     } catch (e) {
-      keyStatus.textContent = 'Could not reach OpenAI to check the key. Check your internet connection.';
+      keyStatus.textContent = 'Could not reach Groq to check the key. Check your internet connection.';
       keyStatus.style.color = 'var(--danger)';
     } finally {
       verifyBtn.disabled = false;
@@ -567,8 +567,8 @@
     const ext = blob.type === 'audio/mpeg' ? 'mp3' : 'wav';
     const form = new FormData();
     form.append('file', new File([blob], 'chunk_' + index + '.' + ext, { type: blob.type || 'audio/wav' }));
-    form.append('model', 'whisper-1');
-    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    form.append('model', 'whisper-large-v3-turbo');
+    const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey },
       body: form
@@ -589,8 +589,8 @@
   async function sendDirect(file, apiKey) {
     const form = new FormData();
     form.append('file', file);
-    form.append('model', 'whisper-1');
-    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    form.append('model', 'whisper-large-v3-turbo');
+    const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey },
       body: form
@@ -606,7 +606,7 @@
   transcribeBtn.addEventListener('click', async () => {
     clearError();
     const apiKey = apiKeyInput.value.trim();
-    if (!apiKey) { showError('Enter your OpenAI API key above first.'); return; }
+    if (!apiKey) { showError('Enter your Groq API key above first.'); return; }
 
     const fileToSend = currentMode === 'record'
       ? new File([recordedBlob], 'recording.webm', { type: 'audio/webm' })
@@ -677,7 +677,7 @@
         setProgress(100, 'Done — ' + totalChunks + ' chunk' + (totalChunks > 1 ? 's' : '') + ' merged');
       }
     } catch (e) {
-      showError(e.message || 'Something went wrong reaching OpenAI. If this is a network/CORS error, it may need a small server-side proxy rather than a pure browser call.');
+      showError(e.message || 'Something went wrong reaching Groq. If this is a network/CORS error, it may need a small server-side proxy rather than a pure browser call.');
     } finally {
       transcribeBtn.disabled = false;
       transcribeBtn.textContent = 'Transcribe';
