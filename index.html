@@ -506,7 +506,28 @@
     return new Blob([view], { type: 'audio/wav' });
   }
 
-  // Decode arbitrary audio (any length/format the browser supports) and resample to mono 16kHz.
+  function isMp3File(file) {
+    return file.type === 'audio/mpeg' || file.type === 'audio/mp3' || /\.mp3$/i.test(file.name || '');
+  }
+
+  // MP3 is a frame-based, self-synchronizing format: a decoder can pick up at the next
+  // valid frame header even if a chunk starts mid-stream. So for MP3 we skip decoding
+  // entirely and just cut the raw bytes — this sidesteps decodeAudioData failures completely.
+  async function transcribeMp3RawChunks(file, apiKey, onProgress) {
+    const CHUNK_BYTES = 20 * 1024 * 1024; // stay comfortably under the 25MB API cap
+    const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_BYTES));
+    let fullText = '';
+    for (let c = 0; c < totalChunks; c++) {
+      const start = c * CHUNK_BYTES;
+      const end = Math.min(file.size, start + CHUNK_BYTES);
+      const chunkBlob = file.slice(start, end, 'audio/mpeg');
+      onProgress(c, totalChunks);
+      const text = await transcribeChunk(chunkBlob, apiKey, c);
+      fullText += (fullText ? ' ' : '') + text.trim();
+      onProgress(c, totalChunks, fullText);
+    }
+    return { text: fullText, totalChunks };
+  }
   async function decodeToMono16k(arrayBuffer) {
     const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
     const decoded = await tempCtx.decodeAudioData(arrayBuffer);
@@ -543,8 +564,9 @@
   }
 
   async function transcribeChunk(blob, apiKey, index) {
+    const ext = blob.type === 'audio/mpeg' ? 'mp3' : 'wav';
     const form = new FormData();
-    form.append('file', new File([blob], 'chunk_' + index + '.wav', { type: 'audio/wav' }));
+    form.append('file', new File([blob], 'chunk_' + index + '.' + ext, { type: blob.type || 'audio/wav' }));
     form.append('model', 'whisper-1');
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -606,8 +628,22 @@
         transcriptBox.textContent = text || '(empty transcript)';
         transcriptBox.classList.remove('empty');
         setProgress(100, 'Done');
+      } else if (isMp3File(fileToSend)) {
+        // MP3: split the raw bytes directly, no decoding needed.
+        transcribeBtn.textContent = 'Transcribing…';
+        setProgress(0, 'Preparing chunks');
+        const { text } = await transcribeMp3RawChunks(fileToSend, apiKey, (c, total, runningText) => {
+          setProgress(Math.round((c / total) * 100), 'Chunk ' + (c + 1) + ' of ' + total);
+          if (runningText !== undefined) {
+            transcriptBox.textContent = runningText;
+            transcriptBox.classList.remove('empty');
+          }
+        });
+        transcriptBox.textContent = text || '(empty transcript)';
+        transcriptBox.classList.remove('empty');
+        setProgress(100, 'Done');
       } else {
-        // Large files: decode, downsample to mono 16kHz, and split into chunks.
+        // Other large files (wav, webm, ogg, m4a): decode, downsample to mono 16kHz, and split into chunks.
         transcribeBtn.textContent = 'Reading audio…';
         setProgress(0, 'Decoding audio file');
         let decoded;
@@ -615,7 +651,7 @@
           const arrayBuffer = await fileToSend.arrayBuffer();
           decoded = await decodeToMono16k(arrayBuffer);
         } catch (decodeErr) {
-          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try Chrome or Edge, or convert the file to WAV/MP3 first.');
+          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try converting it to MP3 first — MP3 files over the size limit are chunked without needing to decode.');
         }
         const { samples, sampleRate } = decoded;
         const chunkLen = CHUNK_SECONDS * sampleRate;
