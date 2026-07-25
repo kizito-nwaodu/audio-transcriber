@@ -251,8 +251,11 @@
 
   <div class="panel">
     <label class="field-label" for="apiKey">OpenAI API key</label>
-    <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off">
-    <div class="key-note">Kept in this browser tab only. Never saved to disk, never sent anywhere but api.openai.com. Get one at platform.openai.com/api-keys.</div>
+    <div class="key-row">
+      <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off">
+      <button class="action-btn" id="verifyBtn" style="flex:0 0 auto; padding:11px 14px;">Verify</button>
+    </div>
+    <div class="key-note" id="keyStatus">Kept in this browser tab only. Never saved to disk, never sent anywhere but api.openai.com. Get one at platform.openai.com/api-keys.</div>
   </div>
 
   <div class="tabs">
@@ -323,6 +326,48 @@
   const apiKeyInput = document.getElementById('apiKey');
   const copyBtn = document.getElementById('copyBtn');
   const downloadBtn = document.getElementById('downloadBtn');
+  const verifyBtn = document.getElementById('verifyBtn');
+  const keyStatus = document.getElementById('keyStatus');
+  const DEFAULT_KEY_NOTE = 'Kept in this browser tab only. Never saved to disk, never sent anywhere but api.openai.com. Get one at platform.openai.com/api-keys.';
+
+  verifyBtn.addEventListener('click', async () => {
+    const key = apiKeyInput.value.trim();
+    if (!key) {
+      keyStatus.textContent = 'Enter a key first.';
+      keyStatus.style.color = 'var(--danger)';
+      return;
+    }
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Checking…';
+    keyStatus.textContent = 'Contacting OpenAI…';
+    keyStatus.style.color = 'var(--text-muted)';
+    try {
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: { 'Authorization': 'Bearer ' + key }
+      });
+      if (res.ok) {
+        keyStatus.textContent = '✓ Key verified — ready to transcribe.';
+        keyStatus.style.color = 'var(--teal)';
+      } else if (res.status === 401) {
+        keyStatus.textContent = 'Invalid key. Double-check you copied the full key, and that it hasn\'t been revoked.';
+        keyStatus.style.color = 'var(--danger)';
+      } else {
+        keyStatus.textContent = 'Key check failed (status ' + res.status + '). It may still work — try transcribing.';
+        keyStatus.style.color = 'var(--danger)';
+      }
+    } catch (e) {
+      keyStatus.textContent = 'Could not reach OpenAI to check the key. Check your internet connection.';
+      keyStatus.style.color = 'var(--danger)';
+    } finally {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify';
+    }
+  });
+
+  apiKeyInput.addEventListener('input', () => {
+    keyStatus.textContent = DEFAULT_KEY_NOTE;
+    keyStatus.style.color = 'var(--text-muted)';
+  });
 
   let currentMode = 'record';
   let recordedBlob = null;
@@ -515,8 +560,26 @@
   }
 
   // --- Transcribe ---
-  const CHUNK_SECONDS = 480;      // 8 min per chunk, well under the 25MB API cap at 16kHz mono
-  const OVERLAP_SECONDS = 2;      // small overlap so words at boundaries aren't cut off
+  const CHUNK_SECONDS = 480;              // 8 min per chunk, well under the 25MB API cap at 16kHz mono
+  const OVERLAP_SECONDS = 2;              // small overlap so words at boundaries aren't cut off
+  const DIRECT_SEND_LIMIT = 24 * 1024 * 1024; // send files under this size straight through, no decoding needed
+
+  async function sendDirect(file, apiKey) {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('model', 'whisper-1');
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      body: form
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || ('Request failed (' + res.status + ')'));
+    }
+    const data = await res.json();
+    return data.text || '';
+  }
 
   transcribeBtn.addEventListener('click', async () => {
     clearError();
@@ -534,33 +597,49 @@
     transcriptBox.classList.add('empty');
 
     try {
-      transcribeBtn.textContent = 'Reading audio…';
-      setProgress(0, 'Decoding audio file');
-      const arrayBuffer = await fileToSend.arrayBuffer();
-      const { samples, sampleRate } = await decodeToMono16k(arrayBuffer);
-
-      const chunkLen = CHUNK_SECONDS * sampleRate;
-      const overlapLen = OVERLAP_SECONDS * sampleRate;
-      const totalChunks = Math.max(1, Math.ceil(samples.length / chunkLen));
-
-      let fullText = '';
-      for (let c = 0; c < totalChunks; c++) {
-        const start = Math.max(0, c * chunkLen - (c > 0 ? overlapLen : 0));
-        const end = Math.min(samples.length, start + chunkLen);
-        const slice = samples.subarray(start, end);
-        const wavBlob = floatSliceToWavBlob(slice, sampleRate);
-
+      // Small files: send as-is, exactly the format the browser gave us. No decoding needed,
+      // so codec quirks in decodeAudioData never come into play.
+      if (fileToSend.size <= DIRECT_SEND_LIMIT) {
         transcribeBtn.textContent = 'Transcribing…';
-        setProgress(Math.round((c / totalChunks) * 100), 'Chunk ' + (c + 1) + ' of ' + totalChunks);
-
-        const text = await transcribeChunk(wavBlob, apiKey, c);
-        fullText += (fullText ? ' ' : '') + text.trim();
-
-        transcriptBox.textContent = fullText;
+        setProgress(20, 'Sending to Whisper');
+        const text = await sendDirect(fileToSend, apiKey);
+        transcriptBox.textContent = text || '(empty transcript)';
         transcriptBox.classList.remove('empty');
-      }
+        setProgress(100, 'Done');
+      } else {
+        // Large files: decode, downsample to mono 16kHz, and split into chunks.
+        transcribeBtn.textContent = 'Reading audio…';
+        setProgress(0, 'Decoding audio file');
+        let decoded;
+        try {
+          const arrayBuffer = await fileToSend.arrayBuffer();
+          decoded = await decodeToMono16k(arrayBuffer);
+        } catch (decodeErr) {
+          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try Chrome or Edge, or convert the file to WAV/MP3 first.');
+        }
+        const { samples, sampleRate } = decoded;
+        const chunkLen = CHUNK_SECONDS * sampleRate;
+        const overlapLen = OVERLAP_SECONDS * sampleRate;
+        const totalChunks = Math.max(1, Math.ceil(samples.length / chunkLen));
 
-      setProgress(100, 'Done — ' + totalChunks + ' chunk' + (totalChunks > 1 ? 's' : '') + ' merged');
+        let fullText = '';
+        for (let c = 0; c < totalChunks; c++) {
+          const start = Math.max(0, c * chunkLen - (c > 0 ? overlapLen : 0));
+          const end = Math.min(samples.length, start + chunkLen);
+          const slice = samples.subarray(start, end);
+          const wavBlob = floatSliceToWavBlob(slice, sampleRate);
+
+          transcribeBtn.textContent = 'Transcribing…';
+          setProgress(Math.round((c / totalChunks) * 100), 'Chunk ' + (c + 1) + ' of ' + totalChunks);
+
+          const text = await transcribeChunk(wavBlob, apiKey, c);
+          fullText += (fullText ? ' ' : '') + text.trim();
+
+          transcriptBox.textContent = fullText;
+          transcriptBox.classList.remove('empty');
+        }
+        setProgress(100, 'Done — ' + totalChunks + ' chunk' + (totalChunks > 1 ? 's' : '') + ' merged');
+      }
     } catch (e) {
       showError(e.message || 'Something went wrong reaching OpenAI. If this is a network/CORS error, it may need a small server-side proxy rather than a pure browser call.');
     } finally {
