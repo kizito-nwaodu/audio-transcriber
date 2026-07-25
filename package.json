@@ -1,0 +1,16 @@
+{
+  "name": "audio-transcriber-proxy",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "CORS proxy for Groq audio transcription API",
+  "main": "proxy.js",
+  "scripts": {
+    "start": "node proxy.js",
+    "dev": "node --watch proxy.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.0"
+  }
+}
