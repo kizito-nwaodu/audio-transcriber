@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Transcribe</title>
+<style>
+  @font-face { font-family: 'system-sans'; src: local('Inter'), local('Helvetica Neue'); }
+
+  :root {
+    --bg: #14171c;
+    --panel: #1b1f26;
+    --panel-raised: #20252d;
+    --border: #2b313b;
+    --text: #e8e6e1;
+    --text-muted: #7d8590;
+    --amber: #e8a33d;
+    --amber-dim: #6b5228;
+    --teal: #4a9d8f;
+    --danger: #d9615a;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --sans: 'Inter', -apple-system, 'Segoe UI', system-sans, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+
+  .wrap { width: 100%; max-width: 640px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+
+  .sub {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0 0 28px;
+    line-height: 1.5;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  label.field-label {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  input[type="password"], input[type="text"] {
+    width: 100%;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+  }
+  input[type="password"]:focus, input[type="text"]:focus {
+    border-color: var(--amber);
+  }
+
+  .key-row { display: flex; gap: 8px; align-items: center; }
+  .key-note { font-size: 12px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: color .15s, border-color .15s;
+  }
+  .tab.active { color: var(--bg); background: var(--amber); border-color: var(--amber); font-weight: 600; }
+
+  .record-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 20px;
+    gap: 20px;
+  }
+
+  .mic-btn {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    border: 2px solid var(--amber);
+    background: transparent;
+    color: var(--amber);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .15s, background .15s;
+  }
+  .mic-btn:hover { transform: scale(1.04); }
+  .mic-btn.recording { background: var(--danger); border-color: var(--danger); color: var(--bg); animation: pulse 1.6s ease-in-out infinite; }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(217,97,90,0.45); }
+    50% { box-shadow: 0 0 0 14px rgba(217,97,90,0); }
+  }
+
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 48px;
+  }
+  .bar {
+    width: 4px;
+    background: var(--teal);
+    border-radius: 2px;
+    height: 4px;
+    transition: height .05s linear;
+  }
+
+  .rec-status { font-family: var(--mono); font-size: 13px; color: var(--text-muted); min-height: 18px; }
+  .rec-status.live { color: var(--danger); }
+
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--amber); background: rgba(232,163,61,0.04); }
+  .upload-zone p { margin: 0; color: var(--text-muted); font-size: 13px; }
+  .upload-zone .fname { color: var(--text); font-family: var(--mono); margin-top: 8px; font-size: 13px; }
+  input[type="file"] { display: none; }
+
+  .transcribe-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 13px;
+    border-radius: 8px;
+    border: none;
+    background: var(--amber);
+    color: #1b1300;
+    font-weight: 650;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .transcribe-btn:disabled { background: var(--amber-dim); color: #8a7440; cursor: not-allowed; }
+
+  .transcript-box {
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--text);
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 80px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .transcript-box.empty { color: var(--text-muted); }
+
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .action-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text);
+    font-size: 12.5px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .action-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+  .progress-track {
+    height: 6px;
+    background: var(--panel-raised);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 12px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--teal);
+    width: 0%;
+    transition: width .2s ease;
+  }
+  .progress-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  .error-msg {
+    color: var(--danger);
+    font-size: 12.5px;
+    font-family: var(--mono);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">// audio → text</div>
+  <h1>Transcribe</h1>
+  <p class="sub">Record from your mic or drop in a file. Runs on OpenAI's Whisper model — you'll need your own API key.</p>
+
+  <div class="panel">
+    <label class="field-label" for="apiKey">OpenAI API key</label>
+    <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off">
+    <div class="key-note">Kept in this browser tab only. Never saved to disk, never sent anywhere but api.openai.com. Get one at platform.openai.com/api-keys.</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="record">Record</div>
+    <div class="tab" data-tab="upload">Upload file</div>
+  </div>
+
+  <div class="panel">
+    <div id="recordPane" class="record-zone">
+      <button class="mic-btn" id="micBtn">
+        <svg id="micIcon" width="26" height="26" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="bars" id="bars"></div>
+      <div class="rec-status" id="recStatus">Tap to start recording</div>
+    </div>
+
+    <div id="uploadPane" class="hidden">
+      <div class="upload-zone" id="dropZone">
+        <p>Drop an audio file here, or click to browse</p>
+        <p style="font-size:11px;margin-top:6px;">mp3, wav, m4a, webm, ogg — any size, split into chunks automatically</p>
+        <div class="fname" id="fileName"></div>
+      </div>
+      <input type="file" id="fileInput" accept="audio/*">
+    </div>
+
+    <button class="transcribe-btn" id="transcribeBtn" disabled>Transcribe</button>
+    <div id="progressWrap" class="hidden">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel"></div>
+    </div>
+    <div class="error-msg hidden" id="errorMsg"></div>
+  </div>
+
+  <div class="panel">
+    <label class="field-label">Transcript</label>
+    <div class="transcript-box empty" id="transcriptBox">Your transcript will appear here.</div>
+    <div class="actions">
+      <button class="action-btn" id="copyBtn">Copy text</button>
+      <button class="action-btn" id="downloadBtn">Download .txt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const NUM_BARS = 28;
+  const barsEl = document.getElementById('bars');
+  for (let i = 0; i < NUM_BARS; i++) {
+    const b = document.createElement('div');
+    b.className = 'bar';
+    barsEl.appendChild(b);
+  }
+  const barEls = [...barsEl.children];
+
+  const tabs = document.querySelectorAll('.tab');
+  const recordPane = document.getElementById('recordPane');
+  const uploadPane = document.getElementById('uploadPane');
+  const micBtn = document.getElementById('micBtn');
+  const recStatus = document.getElementById('recStatus');
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const fileNameEl = document.getElementById('fileName');
+  const transcribeBtn = document.getElementById('transcribeBtn');
+  const transcriptBox = document.getElementById('transcriptBox');
+  const errorMsg = document.getElementById('errorMsg');
+  const apiKeyInput = document.getElementById('apiKey');
+  const copyBtn = document.getElementById('copyBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  let currentMode = 'record';
+  let recordedBlob = null;
+  let uploadedFile = null;
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let audioCtx, analyser, sourceNode, animFrame, stream;
+  let isRecording = false;
+
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    currentMode = t.dataset.tab;
+    recordPane.classList.toggle('hidden', currentMode !== 'record');
+    uploadPane.classList.toggle('hidden', currentMode !== 'upload');
+    updateTranscribeState();
+  }));
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.remove('hidden');
+  }
+  function clearError() {
+    errorMsg.classList.add('hidden');
+    errorMsg.textContent = '';
+  }
+
+  function updateTranscribeState() {
+    const hasSource = currentMode === 'record' ? !!recordedBlob : !!uploadedFile;
+    transcribeBtn.disabled = !hasSource;
+  }
+
+  // --- Recording ---
+  micBtn.addEventListener('click', async () => {
+    clearError();
+    if (!isRecording) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        showError('Could not access microphone. Check browser permissions.');
+        return;
+      }
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        updateTranscribeState();
+      };
+      mediaRecorder.start();
+      isRecording = true;
+      micBtn.classList.add('recording');
+      recStatus.textContent = 'Recording — tap to stop';
+      recStatus.classList.add('live');
+      startVisualizer(stream);
+    } else {
+      mediaRecorder.stop();
+      stream.getTracks().forEach(t => t.stop());
+      stopVisualizer();
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      recStatus.textContent = 'Recording captured';
+      recStatus.classList.remove('live');
+    }
+  });
+
+  function startVisualizer(mediaStream) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 128;
+    sourceNode = audioCtx.createMediaStreamSource(mediaStream);
+    sourceNode.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+
+    function draw() {
+      analyser.getByteFrequencyData(data);
+      const step = Math.floor(data.length / NUM_BARS);
+      for (let i = 0; i < NUM_BARS; i++) {
+        const v = data[i * step] || 0;
+        barEls[i].style.height = Math.max(4, (v / 255) * 44) + 'px';
+      }
+      animFrame = requestAnimationFrame(draw);
+    }
+    draw();
+  }
+  function stopVisualizer() {
+    if (animFrame) cancelAnimationFrame(animFrame);
+    barEls.forEach(b => b.style.height = '4px');
+    if (audioCtx) audioCtx.close();
+  }
+
+  // --- Upload ---
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    if (e.dataTransfer.files.length) setUploadedFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e => {
+    if (e.target.files.length) setUploadedFile(e.target.files[0]);
+  });
+  function setUploadedFile(file) {
+    uploadedFile = file;
+    fileNameEl.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' MB)';
+    updateTranscribeState();
+    clearError();
+  }
+
+  // --- WAV encoding (16-bit PCM, mono) ---
+  function floatSliceToWavBlob(floatChunk, sampleRate) {
+    const numSamples = floatChunk.length;
+    const buffer = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(buffer);
+    function writeStr(offset, str) { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); }
+    writeStr(0, 'RIFF');
+    view.setUint32(4, 36 + numSamples * 2, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);   // PCM
+    view.setUint16(22, 1, true);   // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, 'data');
+    view.setUint32(40, numSamples * 2, true);
+    let offset = 44;
+    for (let i = 0; i < numSamples; i++) {
+      const s = Math.max(-1, Math.min(1, floatChunk[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      offset += 2;
+    }
+    return new Blob([view], { type: 'audio/wav' });
+  }
+
+  // Decode arbitrary audio (any length/format the browser supports) and resample to mono 16kHz.
+  async function decodeToMono16k(arrayBuffer) {
+    const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await tempCtx.decodeAudioData(arrayBuffer);
+    tempCtx.close();
+    const targetRate = 16000;
+    const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * targetRate), targetRate);
+    const src = offline.createBufferSource();
+    // Downmix to mono manually before feeding the offline context if source has multiple channels
+    let monoBuffer;
+    if (decoded.numberOfChannels > 1) {
+      monoBuffer = offline.createBuffer(1, decoded.length, decoded.sampleRate);
+      const out = monoBuffer.getChannelData(0);
+      for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+        const data = decoded.getChannelData(ch);
+        for (let i = 0; i < data.length; i++) out[i] = (out[i] || 0) + data[i] / decoded.numberOfChannels;
+      }
+    } else {
+      monoBuffer = decoded;
+    }
+    src.buffer = monoBuffer;
+    src.connect(offline.destination);
+    src.start();
+    const rendered = await offline.startRendering();
+    return { samples: rendered.getChannelData(0), sampleRate: targetRate };
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('progressWrap').classList.remove('hidden');
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = label;
+  }
+  function hideProgress() {
+    document.getElementById('progressWrap').classList.add('hidden');
+  }
+
+  async function transcribeChunk(blob, apiKey, index) {
+    const form = new FormData();
+    form.append('file', new File([blob], 'chunk_' + index + '.wav', { type: 'audio/wav' }));
+    form.append('model', 'whisper-1');
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      body: form
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || ('Chunk ' + (index + 1) + ' failed (' + res.status + ')'));
+    }
+    const data = await res.json();
+    return data.text || '';
+  }
+
+  // --- Transcribe ---
+  const CHUNK_SECONDS = 480;      // 8 min per chunk, well under the 25MB API cap at 16kHz mono
+  const OVERLAP_SECONDS = 2;      // small overlap so words at boundaries aren't cut off
+
+  transcribeBtn.addEventListener('click', async () => {
+    clearError();
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) { showError('Enter your OpenAI API key above first.'); return; }
+
+    const fileToSend = currentMode === 'record'
+      ? new File([recordedBlob], 'recording.webm', { type: 'audio/webm' })
+      : uploadedFile;
+
+    if (!fileToSend) { showError('Nothing to transcribe yet.'); return; }
+
+    transcribeBtn.disabled = true;
+    transcriptBox.textContent = '';
+    transcriptBox.classList.add('empty');
+
+    try {
+      transcribeBtn.textContent = 'Reading audio…';
+      setProgress(0, 'Decoding audio file');
+      const arrayBuffer = await fileToSend.arrayBuffer();
+      const { samples, sampleRate } = await decodeToMono16k(arrayBuffer);
+
+      const chunkLen = CHUNK_SECONDS * sampleRate;
+      const overlapLen = OVERLAP_SECONDS * sampleRate;
+      const totalChunks = Math.max(1, Math.ceil(samples.length / chunkLen));
+
+      let fullText = '';
+      for (let c = 0; c < totalChunks; c++) {
+        const start = Math.max(0, c * chunkLen - (c > 0 ? overlapLen : 0));
+        const end = Math.min(samples.length, start + chunkLen);
+        const slice = samples.subarray(start, end);
+        const wavBlob = floatSliceToWavBlob(slice, sampleRate);
+
+        transcribeBtn.textContent = 'Transcribing…';
+        setProgress(Math.round((c / totalChunks) * 100), 'Chunk ' + (c + 1) + ' of ' + totalChunks);
+
+        const text = await transcribeChunk(wavBlob, apiKey, c);
+        fullText += (fullText ? ' ' : '') + text.trim();
+
+        transcriptBox.textContent = fullText;
+        transcriptBox.classList.remove('empty');
+      }
+
+      setProgress(100, 'Done — ' + totalChunks + ' chunk' + (totalChunks > 1 ? 's' : '') + ' merged');
+    } catch (e) {
+      showError(e.message || 'Something went wrong reaching OpenAI. If this is a network/CORS error, it may need a small server-side proxy rather than a pure browser call.');
+    } finally {
+      transcribeBtn.disabled = false;
+      transcribeBtn.textContent = 'Transcribe';
+      updateTranscribeState();
+      setTimeout(hideProgress, 2500);
+    }
+  });
+
+  copyBtn.addEventListener('click', () => {
+    const text = transcriptBox.textContent;
+    if (!text || transcriptBox.classList.contains('empty')) return;
+    navigator.clipboard.writeText(text);
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => copyBtn.textContent = 'Copy text', 1200);
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const text = transcriptBox.textContent;
+    if (!text || transcriptBox.classList.contains('empty')) return;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transcript.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>
+</body>
+</html>
