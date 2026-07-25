@@ -303,6 +303,9 @@
 </div>
 
 <script>
+  // Proxy base URL — change this if deploying the proxy elsewhere
+  const PROXY_BASE_URL = 'http://localhost:3000';
+
   const NUM_BARS = 28;
   const barsEl = document.getElementById('bars');
   for (let i = 0; i < NUM_BARS; i++) {
@@ -342,7 +345,7 @@
     keyStatus.textContent = 'Contacting Groq…';
     keyStatus.style.color = 'var(--text-muted)';
     try {
-      const res = await fetch('https://api.groq.com/openai/v1/models', {
+      const res = await fetch(PROXY_BASE_URL + '/api/models', {
         headers: { 'Authorization': 'Bearer ' + key }
       });
       if (res.ok) {
@@ -356,7 +359,7 @@
         keyStatus.style.color = 'var(--danger)';
       }
     } catch (e) {
-      keyStatus.textContent = 'Could not reach Groq to check the key. Check your internet connection.';
+      keyStatus.textContent = 'Could not reach proxy server. Make sure the proxy is running at ' + PROXY_BASE_URL;
       keyStatus.style.color = 'var(--danger)';
     } finally {
       verifyBtn.disabled = false;
@@ -510,11 +513,8 @@
     return file.type === 'audio/mpeg' || file.type === 'audio/mp3' || /\.mp3$/i.test(file.name || '');
   }
 
-  // MP3 is a frame-based, self-synchronizing format: a decoder can pick up at the next
-  // valid frame header even if a chunk starts mid-stream. So for MP3 we skip decoding
-  // entirely and just cut the raw bytes — this sidesteps decodeAudioData failures completely.
   async function transcribeMp3RawChunks(file, apiKey, onProgress) {
-    const CHUNK_BYTES = 20 * 1024 * 1024; // stay comfortably under the 25MB API cap
+    const CHUNK_BYTES = 20 * 1024 * 1024;
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_BYTES));
     let fullText = '';
     for (let c = 0; c < totalChunks; c++) {
@@ -535,7 +535,6 @@
     const targetRate = 16000;
     const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * targetRate), targetRate);
     const src = offline.createBufferSource();
-    // Downmix to mono manually before feeding the offline context if source has multiple channels
     let monoBuffer;
     if (decoded.numberOfChannels > 1) {
       monoBuffer = offline.createBuffer(1, decoded.length, decoded.sampleRate);
@@ -568,7 +567,7 @@
     const form = new FormData();
     form.append('file', new File([blob], 'chunk_' + index + '.' + ext, { type: blob.type || 'audio/wav' }));
     form.append('model', 'whisper-large-v3-turbo');
-    const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    const res = await fetch(PROXY_BASE_URL + '/api/transcribe', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey },
       body: form
@@ -581,16 +580,15 @@
     return data.text || '';
   }
 
-  // --- Transcribe ---
-  const CHUNK_SECONDS = 480;              // 8 min per chunk, well under the 25MB API cap at 16kHz mono
-  const OVERLAP_SECONDS = 2;              // small overlap so words at boundaries aren't cut off
-  const DIRECT_SEND_LIMIT = 24 * 1024 * 1024; // send files under this size straight through, no decoding needed
+  const CHUNK_SECONDS = 480;
+  const OVERLAP_SECONDS = 2;
+  const DIRECT_SEND_LIMIT = 24 * 1024 * 1024;
 
   async function sendDirect(file, apiKey) {
     const form = new FormData();
     form.append('file', file);
     form.append('model', 'whisper-large-v3-turbo');
-    const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    const res = await fetch(PROXY_BASE_URL + '/api/transcribe', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey },
       body: form
@@ -619,8 +617,6 @@
     transcriptBox.classList.add('empty');
 
     try {
-      // Small files: send as-is, exactly the format the browser gave us. No decoding needed,
-      // so codec quirks in decodeAudioData never come into play.
       if (fileToSend.size <= DIRECT_SEND_LIMIT) {
         transcribeBtn.textContent = 'Transcribing…';
         setProgress(20, 'Sending to Whisper');
@@ -629,7 +625,6 @@
         transcriptBox.classList.remove('empty');
         setProgress(100, 'Done');
       } else if (isMp3File(fileToSend)) {
-        // MP3: split the raw bytes directly, no decoding needed.
         transcribeBtn.textContent = 'Transcribing…';
         setProgress(0, 'Preparing chunks');
         const { text } = await transcribeMp3RawChunks(fileToSend, apiKey, (c, total, runningText) => {
@@ -643,7 +638,6 @@
         transcriptBox.classList.remove('empty');
         setProgress(100, 'Done');
       } else {
-        // Other large files (wav, webm, ogg, m4a): decode, downsample to mono 16kHz, and split into chunks.
         transcribeBtn.textContent = 'Reading audio…';
         setProgress(0, 'Decoding audio file');
         let decoded;
@@ -677,7 +671,7 @@
         setProgress(100, 'Done — ' + totalChunks + ' chunk' + (totalChunks > 1 ? 's' : '') + ' merged');
       }
     } catch (e) {
-      showError(e.message || 'Something went wrong reaching Groq. If this is a network/CORS error, it may need a small server-side proxy rather than a pure browser call.');
+      showError(e.message || 'Something went wrong. Make sure the proxy is running and your API key is valid.');
     } finally {
       transcribeBtn.disabled = false;
       transcribeBtn.textContent = 'Transcribe';
