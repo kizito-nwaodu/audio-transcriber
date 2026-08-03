@@ -562,29 +562,10 @@
     document.getElementById('progressWrap').classList.add('hidden');
   }
 
-  async function transcribeChunk(blob, apiKey, index) {
-    const ext = blob.type === 'audio/mpeg' ? 'mp3' : 'wav';
-    const form = new FormData();
-    form.append('file', new File([blob], 'chunk_' + index + '.' + ext, { type: blob.type || 'audio/wav' }));
-    form.append('model', 'whisper-large-v3-turbo');
-    const res = await fetch(PROXY_BASE_URL + '/api/transcribe', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + apiKey },
-      body: form
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || ('Chunk ' + (index + 1) + ' failed (' + res.status + ')'));
-    }
-    const data = await res.json();
-    return data.text || '';
-  }
-
-  const CHUNK_SECONDS = 480;
-  const OVERLAP_SECONDS = 2;
-  const DIRECT_SEND_LIMIT = 24 * 1024 * 1024;
-
-  async function sendDirect(file, apiKey) {
+  // Shared call to the proxy's /api/transcribe endpoint. `file` is sent as-is
+  // (used for direct sends and MP3 raw chunks); `labelOnFail` customizes the
+  // error message so the caller can say e.g. "Chunk 3 failed" vs "Request failed".
+  async function callTranscribeApi(file, apiKey, labelOnFail) {
     const form = new FormData();
     form.append('file', file);
     form.append('model', 'whisper-large-v3-turbo');
@@ -595,10 +576,24 @@
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || ('Request failed (' + res.status + ')'));
+      throw new Error(err.error?.message || (labelOnFail + ' (' + res.status + ')'));
     }
     const data = await res.json();
     return data.text || '';
+  }
+
+  async function transcribeChunk(blob, apiKey, index) {
+    const ext = blob.type === 'audio/mpeg' ? 'mp3' : 'wav';
+    const file = new File([blob], 'chunk_' + index + '.' + ext, { type: blob.type || 'audio/wav' });
+    return callTranscribeApi(file, apiKey, 'Chunk ' + (index + 1) + ' failed');
+  }
+
+  const CHUNK_SECONDS = 480;
+  const OVERLAP_SECONDS = 2;
+  const DIRECT_SEND_LIMIT = 24 * 1024 * 1024;
+
+  async function sendDirect(file, apiKey) {
+    return callTranscribeApi(file, apiKey, 'Request failed');
   }
 
   transcribeBtn.addEventListener('click', async () => {
