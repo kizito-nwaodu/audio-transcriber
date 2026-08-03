@@ -45,13 +45,13 @@ app.post('/api/transcribe', async (req, res) => {
   }
 
   try {
-    // Forward the FormData directly to Groq
     const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${key}`
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': req.headers['content-type']
       },
-      body: req.body
+      body: req
     });
     const data = await response.json();
     res.status(response.status).json(data);

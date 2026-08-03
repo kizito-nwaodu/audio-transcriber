@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Transcribe</title>
 <style>
   @font-face { font-family: 'system-sans'; src: local('Inter'), local('Helvetica Neue'); }
@@ -47,7 +48,7 @@
 
   h1 {
     font-size: 28px;
-    font-weight: 650;
+    font-weight: 600;
     letter-spacing: -0.01em;
     margin: 0 0 6px;
   }
@@ -175,7 +176,7 @@
     border: none;
     background: var(--amber);
     color: #1b1300;
-    font-weight: 650;
+    font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     font-family: var(--sans);
@@ -509,25 +510,6 @@
     return new Blob([view], { type: 'audio/wav' });
   }
 
-  function isMp3File(file) {
-    return file.type === 'audio/mpeg' || file.type === 'audio/mp3' || /\.mp3$/i.test(file.name || '');
-  }
-
-  async function transcribeMp3RawChunks(file, apiKey, onProgress) {
-    const CHUNK_BYTES = 20 * 1024 * 1024;
-    const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_BYTES));
-    let fullText = '';
-    for (let c = 0; c < totalChunks; c++) {
-      const start = c * CHUNK_BYTES;
-      const end = Math.min(file.size, start + CHUNK_BYTES);
-      const chunkBlob = file.slice(start, end, 'audio/mpeg');
-      onProgress(c, totalChunks);
-      const text = await transcribeChunk(chunkBlob, apiKey, c);
-      fullText += (fullText ? ' ' : '') + text.trim();
-      onProgress(c, totalChunks, fullText);
-    }
-    return { text: fullText, totalChunks };
-  }
   async function decodeToMono16k(arrayBuffer) {
     const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
     const decoded = await tempCtx.decodeAudioData(arrayBuffer);
@@ -617,27 +599,14 @@
     transcriptBox.classList.add('empty');
 
     try {
-      if (fileToSend.size <= DIRECT_SEND_LIMIT) {
-        transcribeBtn.textContent = 'Transcribing…';
-        setProgress(20, 'Sending to Whisper');
-        const text = await sendDirect(fileToSend, apiKey);
-        transcriptBox.textContent = text || '(empty transcript)';
-        transcriptBox.classList.remove('empty');
-        setProgress(100, 'Done');
-      } else if (isMp3File(fileToSend)) {
-        transcribeBtn.textContent = 'Transcribing…';
-        setProgress(0, 'Preparing chunks');
-        const { text } = await transcribeMp3RawChunks(fileToSend, apiKey, (c, total, runningText) => {
-          setProgress(Math.round((c / total) * 100), 'Chunk ' + (c + 1) + ' of ' + total);
-          if (runningText !== undefined) {
-            transcriptBox.textContent = runningText;
-            transcriptBox.classList.remove('empty');
-          }
-        });
-        transcriptBox.textContent = text || '(empty transcript)';
-        transcriptBox.classList.remove('empty');
-        setProgress(100, 'Done');
-      } else {
+if (fileToSend.size <= DIRECT_SEND_LIMIT) {
+         transcribeBtn.textContent = 'Transcribing…';
+         setProgress(20, 'Sending to Whisper');
+         const text = await sendDirect(fileToSend, apiKey);
+         transcriptBox.textContent = text || '(empty transcript)';
+         transcriptBox.classList.remove('empty');
+         setProgress(100, 'Done');
+       } else {
         transcribeBtn.textContent = 'Reading audio…';
         setProgress(0, 'Decoding audio file');
         let decoded;
@@ -645,7 +614,7 @@
           const arrayBuffer = await fileToSend.arrayBuffer();
           decoded = await decodeToMono16k(arrayBuffer);
         } catch (decodeErr) {
-          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try converting it to MP3 first - MP3 files over the size limit are chunked without decoding.');
+          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try converting to a supported audio format (mp3, wav, m4a, webm, ogg).');
         }
         const { samples, sampleRate } = decoded;
         const chunkLen = CHUNK_SECONDS * sampleRate;
