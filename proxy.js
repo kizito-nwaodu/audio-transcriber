@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import fetch from 'node-fetch';
+import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -37,27 +37,36 @@ app.get('/api/models', async (req, res) => {
   }
 });
 
-// Proxy for Groq transcriptions endpoint
-app.post('/api/transcribe', async (req, res) => {
+// Proxy for Groq transcriptions endpoint — streams multipart data directly
+app.post('/api/transcribe', (req, res) => {
   const key = req.headers.authorization?.replace('Bearer ', '');
   if (!key) {
     return res.status(401).json({ error: 'No API key provided' });
   }
 
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': req.headers['content-type']
-      },
-      body: req
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
+  const options = {
+    hostname: 'api.groq.com',
+    path: '/openai/v1/audio/transcriptions',
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': req.headers['content-type']
+    }
+  };
+
+  const proxyReq = https.request(options, (proxyRes) => {
+    res.status(proxyRes.statusCode);
+    for (const [h, v] of Object.entries(proxyRes.headers)) {
+      res.setHeader(h, v);
+    }
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.on('error', (err) => {
     res.status(500).json({ error: err.message });
-  }
+  });
+
+  req.pipe(proxyReq);
 });
 
 app.listen(PORT, () => {
