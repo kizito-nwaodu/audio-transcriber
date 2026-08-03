@@ -48,15 +48,13 @@ Open `index.html` in your browser. The app automatically uses `http://localhost:
 
 To run publicly (e.g., Vercel, Heroku, Railway):
 
-1. Deploy `proxy.js` + `package.json`
-2. Update the `PROXY_BASE_URL` in `index.html` to your deployed URL
-3. Open `index.html` from anywhere
+1. Deploy `proxy.js` + `package.json` (this also serves `index.html` as a static file)
+2. Open the deployed URL — the app detects the proxy address automatically via `window.location.origin`, so no code changes are needed
 
 Example (Vercel):
 ```bash
 vercel deploy
-# Then in index.html, change:
-# const PROXY_BASE_URL = 'https://your-vercel-url.vercel.app';
+# Then just open the URL Vercel gives you
 ```
 
 ## API Endpoints
