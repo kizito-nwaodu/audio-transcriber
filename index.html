@@ -303,8 +303,8 @@
 </div>
 
 <script>
-  // Proxy base URL — change this if deploying the proxy elsewhere
-  const PROXY_BASE_URL = 'http://localhost:3000';
+  // Proxy base URL — auto-detect based on where the app is hosted
+  const PROXY_BASE_URL = window.location.origin;
 
   const NUM_BARS = 28;
   const barsEl = document.getElementById('bars');
@@ -359,7 +359,7 @@
         keyStatus.style.color = 'var(--danger)';
       }
     } catch (e) {
-      keyStatus.textContent = 'Could not reach proxy server. Make sure the proxy is running at ' + PROXY_BASE_URL;
+      keyStatus.textContent = 'Could not reach proxy server. Check your internet connection.';
       keyStatus.style.color = 'var(--danger)';
     } finally {
       verifyBtn.disabled = false;
