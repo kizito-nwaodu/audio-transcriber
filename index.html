@@ -352,7 +352,7 @@
         keyStatus.textContent = '✓ Key verified — ready to transcribe.';
         keyStatus.style.color = 'var(--teal)';
       } else if (res.status === 401) {
-        keyStatus.textContent = 'Invalid key. Double-check you copied the full key, and that it hasn\'t been revoked.';
+        keyStatus.textContent = 'Invalid key. Double-check you copied the full key, and that it\'s been revoked.';
         keyStatus.style.color = 'var(--danger)';
       } else {
         keyStatus.textContent = 'Key check failed (status ' + res.status + '). It may still work — try transcribing.';
@@ -414,10 +414,15 @@
         return;
       }
       audioChunks = [];
-      mediaRecorder = new MediaRecorder(stream);
+      // Use mimeType where supported
+      const options = {};
+      try {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) options.mimeType = 'audio/webm;codecs=opus';
+      } catch (_) {}
+      mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
       mediaRecorder.onstop = () => {
-        recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        recordedBlob = new Blob(audioChunks, { type: audioChunks[0]?.type || 'audio/webm' });
         updateTranscribeState();
       };
       mediaRecorder.start();
@@ -447,7 +452,7 @@
 
     function draw() {
       analyser.getByteFrequencyData(data);
-      const step = Math.floor(data.length / NUM_BARS);
+      const step = Math.max(1, Math.floor(data.length / NUM_BARS));
       for (let i = 0; i < NUM_BARS; i++) {
         const v = data[i * step] || 0;
         barEls[i].style.height = Math.max(4, (v / 255) * 44) + 'px';
@@ -521,13 +526,15 @@
       const start = c * CHUNK_BYTES;
       const end = Math.min(file.size, start + CHUNK_BYTES);
       const chunkBlob = file.slice(start, end, 'audio/mpeg');
-      onProgress(c, totalChunks);
+      // report progress for this chunk (1-based)
+      onProgress(c + 1, totalChunks);
       const text = await transcribeChunk(chunkBlob, apiKey, c);
       fullText += (fullText ? ' ' : '') + text.trim();
-      onProgress(c, totalChunks, fullText);
+      onProgress(c + 1, totalChunks, fullText);
     }
     return { text: fullText, totalChunks };
   }
+
   async function decodeToMono16k(arrayBuffer) {
     const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
     const decoded = await tempCtx.decodeAudioData(arrayBuffer);
@@ -535,18 +542,20 @@
     const targetRate = 16000;
     const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * targetRate), targetRate);
     const src = offline.createBufferSource();
-    let monoBuffer;
+
+    // If multi-channel, create a mono buffer by averaging channels at the source sample rate
     if (decoded.numberOfChannels > 1) {
-      monoBuffer = offline.createBuffer(1, decoded.length, decoded.sampleRate);
+      const monoBuffer = offline.createBuffer(1, decoded.length, decoded.sampleRate);
       const out = monoBuffer.getChannelData(0);
       for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
         const data = decoded.getChannelData(ch);
         for (let i = 0; i < data.length; i++) out[i] = (out[i] || 0) + data[i] / decoded.numberOfChannels;
       }
+      src.buffer = monoBuffer;
     } else {
-      monoBuffer = decoded;
+      src.buffer = decoded;
     }
-    src.buffer = monoBuffer;
+
     src.connect(offline.destination);
     src.start();
     const rendered = await offline.startRendering();
@@ -554,8 +563,9 @@
   }
 
   function setProgress(pct, label) {
+    const p = Math.max(0, Math.min(100, pct));
     document.getElementById('progressWrap').classList.remove('hidden');
-    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressFill').style.width = p + '%';
     document.getElementById('progressLabel').textContent = label;
   }
   function hideProgress() {
@@ -569,17 +579,35 @@
     const form = new FormData();
     form.append('file', file);
     form.append('model', 'whisper-large-v3-turbo');
+
     const res = await fetch(PROXY_BASE_URL + '/api/transcribe', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey },
       body: form
     });
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || (labelOnFail + ' (' + res.status + ')'));
+      // Try to parse JSON error; if not JSON, read text
+      const contentType = res.headers.get('content-type') || '';
+      let errBody = {};
+      try {
+        if (contentType.includes('application/json')) errBody = await res.json();
+        else errBody = { message: await res.text() };
+      } catch (err) {
+        // fallback
+      }
+      throw new Error(errBody?.error?.message || errBody?.message || (labelOnFail + ' (' + res.status + ')'));
     }
-    const data = await res.json();
-    return data.text || '';
+
+    // Success: parse JSON when applicable, otherwise return text
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = await res.json();
+      // prefer data.text but allow plain-string responses
+      return data.text || data?.result || '';
+    } else {
+      return await res.text();
+    }
   }
 
   async function transcribeChunk(blob, apiKey, index) {
@@ -602,7 +630,12 @@
     if (!apiKey) { showError('Enter your Groq API key above first.'); return; }
 
     const fileToSend = currentMode === 'record'
-      ? new File([recordedBlob], 'recording.webm', { type: 'audio/webm' })
+      ? (() => {
+          if (!recordedBlob) return null;
+          const mime = recordedBlob.type || 'audio/webm';
+          const ext = mime.includes('ogg') ? 'ogg' : mime.includes('webm') ? 'webm' : 'webm';
+          return new File([recordedBlob], 'recording.' + ext, { type: mime });
+        })()
       : uploadedFile;
 
     if (!fileToSend) { showError('Nothing to transcribe yet.'); return; }
@@ -623,7 +656,7 @@
         transcribeBtn.textContent = 'Transcribing…';
         setProgress(0, 'Preparing chunks');
         const { text } = await transcribeMp3RawChunks(fileToSend, apiKey, (c, total, runningText) => {
-          setProgress(Math.round((c / total) * 100), 'Chunk ' + (c + 1) + ' of ' + total);
+          setProgress(Math.round(((c) / total) * 100), 'Chunk ' + (c) + ' of ' + total);
           if (runningText !== undefined) {
             transcriptBox.textContent = runningText;
             transcriptBox.classList.remove('empty');
@@ -640,7 +673,7 @@
           const arrayBuffer = await fileToSend.arrayBuffer();
           decoded = await decodeToMono16k(arrayBuffer);
         } catch (decodeErr) {
-          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try converting it to MP3 first - MP3 files over the size limit are chunked without decoding.');
+          throw new Error('Could not decode this file for chunking (' + (fileToSend.type || 'unknown format') + '). Try converting it to MP3 first. If the file is large, convert to MP3 and re-try.');
         }
         const { samples, sampleRate } = decoded;
         const chunkLen = CHUNK_SECONDS * sampleRate;
@@ -655,7 +688,7 @@
           const wavBlob = floatSliceToWavBlob(slice, sampleRate);
 
           transcribeBtn.textContent = 'Transcribing…';
-          setProgress(Math.round((c / totalChunks) * 100), 'Chunk ' + (c + 1) + ' of ' + totalChunks);
+          setProgress(Math.round(((c + 1) / totalChunks) * 100), 'Chunk ' + (c + 1) + ' of ' + totalChunks);
 
           const text = await transcribeChunk(wavBlob, apiKey, c);
           fullText += (fullText ? ' ' : '') + text.trim();
