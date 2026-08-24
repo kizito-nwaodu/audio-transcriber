@@ -767,7 +767,8 @@
       <h2 style="font-size: 18px; font-weight: 700;">Transcript</h2>
       <div class="stats-badges">
         <span class="stat-badge" id="wordCountBadge">0 words</span>
-        <span class="stat-badge" id="charCountBadge">0 characters</span>
+        <span class="stat-badge" id="charCountBadge">0 chars</span>
+        <span class="stat-badge" id="readingTimeBadge">0 min read</span>
       </div>
     </div>
 
@@ -1183,8 +1184,8 @@
     return { samples: rendered.getChannelData(0), sampleRate: targetRate, duration: decoded.duration };
   }
 
-  // Unified API Call (Backend Proxy OR Direct Groq API)
-  async function callTranscribeApi(file, options = {}) {
+  // Unified API Call (Backend Proxy OR Direct Groq API) with Auto-Retry for long jobs (5,000+ words)
+  async function callTranscribeApi(file, options = {}, retries = 2) {
     const form = new FormData();
     form.append('file', file);
     form.append('model', options.model || 'whisper-large-v3-turbo');
@@ -1199,7 +1200,6 @@
 
     let targetEndpoint = PROXY_BASE_URL + '/api/transcribe';
     if (!backendOnline) {
-      // Direct call to Groq API (supported via CORS)
       targetEndpoint = 'https://api.groq.com/openai/v1/audio/transcriptions';
       if (!key) throw new Error('Please enter your Groq API key in the key field.');
       headers['Authorization'] = 'Bearer ' + key;
@@ -1207,25 +1207,39 @@
       headers['Authorization'] = 'Bearer ' + key;
     }
 
-    const res = await fetch(targetEndpoint, {
-      method: 'POST',
-      headers,
-      body: form
-    });
+    try {
+      const res = await fetch(targetEndpoint, {
+        method: 'POST',
+        headers,
+        body: form
+      });
 
-    if (!res.ok) {
-      let errMsg = 'Transcription request failed (' + res.status + ')';
-      try {
-        const data = await res.json();
-        errMsg = data?.error?.message || data?.message || errMsg;
-      } catch (_) {
-        const text = await res.text();
-        if (text) errMsg = text;
+      if (res.status === 429 && retries > 0) {
+        // Groq rate limit hit during long 5,000-word job - backoff and retry
+        await new Promise(r => setTimeout(r, 3000));
+        return callTranscribeApi(file, options, retries - 1);
       }
-      throw new Error(errMsg);
-    }
 
-    return await res.json();
+      if (!res.ok) {
+        let errMsg = 'Transcription request failed (' + res.status + ')';
+        try {
+          const data = await res.json();
+          errMsg = data?.error?.message || data?.message || errMsg;
+        } catch (_) {
+          const text = await res.text();
+          if (text) errMsg = text;
+        }
+        throw new Error(errMsg);
+      }
+
+      return await res.json();
+    } catch (netErr) {
+      if (retries > 0) {
+        await new Promise(r => setTimeout(r, 2000));
+        return callTranscribeApi(file, options, retries - 1);
+      }
+      throw netErr;
+    }
   }
 
   function setProgress(pct, label) {
@@ -1240,11 +1254,14 @@
     progressSection.classList.add('hidden');
   }
 
+  const readingTimeBadge = document.getElementById('readingTimeBadge');
   function updateTranscriptStats(text) {
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
-    wordCountBadge.textContent = words + ' words';
-    charCountBadge.textContent = chars + ' chars';
+    const minsRead = Math.max(1, Math.ceil(words / 200));
+    wordCountBadge.textContent = words.toLocaleString() + ' words';
+    charCountBadge.textContent = chars.toLocaleString() + ' chars';
+    if (readingTimeBadge) readingTimeBadge.textContent = (words > 0 ? `~${minsRead} min read` : '0 min read');
     const hasContent = words > 0;
     copyBtn.disabled = !hasContent;
     downloadTxtBtn.disabled = !hasContent;
@@ -1275,7 +1292,6 @@
     // Clean user prompt (filter out email addresses or invalid syntax)
     let userPrompt = promptInput.value.trim();
     if (userPrompt && userPrompt.includes('@') && !userPrompt.includes(' ')) {
-      // If user typed an email address, strip it so it doesn't trick Whisper into stopping early
       userPrompt = '';
     }
 
@@ -1286,9 +1302,7 @@
     };
 
     try {
-      // CRITICAL FIX: Duration-based check
-      // For any audio longer than 180s (3 minutes) OR size > 20MB, chunk it!
-      // This ensures 15-minute or 1-hour files don't truncate early.
+      // Duration-based check: chunk any audio longer than 180s (3 minutes) OR size > 20MB
       const shouldChunk = detectedDuration > 180 || sourceFile.size > 20 * 1024 * 1024;
 
       if (!shouldChunk && detectedDuration > 0 && detectedDuration <= 180) {
@@ -1302,12 +1316,12 @@
         updateTranscriptStats(fullTranscriptText);
         setProgress(100, 'Complete! ✨');
       } else {
-        // High-fidelity Multi-Chunk Decoding Pipeline
+        // High-fidelity Multi-Chunk Decoding Pipeline (supports 5,000+ words)
         setProgress(5, 'Analyzing and decoding audio stream…');
         const arrayBuf = await sourceFile.arrayBuffer();
         const { samples, sampleRate, duration } = await decodeTo16kMono(arrayBuf);
 
-        // 180 seconds (~3 minutes) per chunk for optimal Whisper accuracy & no truncation
+        // 180 seconds (~3 minutes) per chunk
         const CHUNK_SECONDS = 180;
         const chunkLength = CHUNK_SECONDS * sampleRate;
         const totalChunks = Math.max(1, Math.ceil(samples.length / chunkLength));
@@ -1346,10 +1360,11 @@
           }
 
           if (chunkText) {
-            accumulatedText += (accumulatedText ? ' ' : '') + chunkText;
+            accumulatedText += (accumulatedText ? '\n\n' : '') + chunkText;
             lastPrompt = chunkText;
             transcriptBox.textContent = accumulatedText;
             transcriptBox.classList.remove('empty');
+            transcriptBox.scrollTop = transcriptBox.scrollHeight;
             updateTranscriptStats(accumulatedText);
           }
         }
