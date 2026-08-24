@@ -779,8 +779,8 @@
       <input type="text" class="search-input" id="searchTranscript" placeholder="Search within transcript…">
     </div>
 
-    <!-- Transcript Box -->
-    <div class="transcript-box empty" id="transcriptBox">Your transcription will appear here.</div>
+    <!-- Transcript Box (Editable) -->
+    <div class="transcript-box empty" id="transcriptBox" contenteditable="true" spellcheck="false">Your transcription will appear here.</div>
 
     <!-- Export Action Toolbar -->
     <div class="action-toolbar">
@@ -1373,7 +1373,14 @@
     }
   });
 
-  // In-Transcript Search
+  // In-Transcript Search & Direct Box Edit
+  transcriptBox.addEventListener('input', () => {
+    if (!transcriptBox.classList.contains('empty')) {
+      fullTranscriptText = transcriptBox.innerText || transcriptBox.textContent || '';
+      updateTranscriptStats(fullTranscriptText);
+    }
+  });
+
   searchTranscript.addEventListener('input', () => {
     const q = searchTranscript.value.trim().toLowerCase();
     if (!fullTranscriptText) return;
