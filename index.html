@@ -45,7 +45,7 @@
 
   .container {
     width: 100%;
-    max-width: 760px;
+    max-width: 780px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -105,8 +105,12 @@
     background: var(--accent);
     box-shadow: 0 0 8px var(--accent);
   }
+  .status-dot.direct {
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--primary);
+  }
   .status-dot.offline {
-    background: var(--danger);
+    background: var(--amber);
   }
 
   h1 {
@@ -162,10 +166,7 @@
     transition: all 0.2s ease;
   }
 
-  .tab-btn:hover {
-    color: var(--text-main);
-  }
-
+  .tab-btn:hover { color: var(--text-main); }
   .tab-btn.active {
     background: var(--bg-card-raised);
     color: #ffffff;
@@ -180,13 +181,6 @@
     align-items: center;
     padding: 24px 16px;
     gap: 18px;
-  }
-
-  .mic-button-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .mic-btn {
@@ -248,10 +242,7 @@
     height: 4px;
     transition: height 0.08s ease, background-color 0.2s ease;
   }
-
-  .bar.active {
-    background: var(--accent);
-  }
+  .bar.active { background: var(--accent); }
 
   .record-hint {
     font-size: 13px;
@@ -279,22 +270,9 @@
     background: rgba(59, 130, 246, 0.04);
   }
 
-  .upload-icon {
-    color: var(--primary);
-    margin-bottom: 2px;
-  }
-
-  .upload-primary-text {
-    font-size: 14.5px;
-    font-weight: 600;
-    color: var(--text-main);
-  }
-
-  .upload-sub-text {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-family: var(--mono);
-  }
+  .upload-icon { color: var(--primary); margin-bottom: 2px; }
+  .upload-primary-text { font-size: 14.5px; font-weight: 600; color: var(--text-main); }
+  .upload-sub-text { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
 
   /* Audio Preview Player */
   .audio-preview-card {
@@ -377,18 +355,38 @@
     font-size: 11px;
     color: var(--text-muted);
     font-family: var(--mono);
-    min-width: 60px;
+    min-width: 75px;
     text-align: right;
   }
 
-  /* Options Accordion / Row */
+  /* API Key Banner if offline (e.g. GitHub Pages) */
+  .api-key-banner {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .api-key-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #93c5fd;
+  }
+
+  /* Options Row */
   .options-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 12px;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 680px) {
     .options-row { grid-template-columns: 1fr; }
   }
 
@@ -461,7 +459,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 12px 16px;
+    padding: 14px 16px;
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -475,14 +473,8 @@
     font-size: 12px;
   }
 
-  .progress-label {
-    color: var(--text-main);
-  }
-
-  .progress-percent {
-    color: var(--accent);
-    font-weight: 600;
-  }
+  .progress-label { color: var(--text-main); }
+  .progress-percent { color: var(--accent); font-weight: 600; }
 
   .progress-bar-track {
     width: 100%;
@@ -529,13 +521,13 @@
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 16px;
+    padding: 18px;
     font-family: var(--sans);
-    font-size: 14.5px;
-    line-height: 1.7;
+    font-size: 15px;
+    line-height: 1.75;
     color: var(--text-main);
-    min-height: 160px;
-    max-height: 440px;
+    min-height: 180px;
+    max-height: 480px;
     overflow-y: auto;
     white-space: pre-wrap;
     word-break: break-word;
@@ -550,18 +542,9 @@
     justify-content: center;
   }
 
-  /* Search within transcript */
-  .transcript-search {
-    position: relative;
-    margin-bottom: 2px;
-  }
-
-  .search-input {
-    width: 100%;
-    padding: 8px 12px 8px 34px;
-    font-size: 12.5px;
-  }
-
+  /* Search */
+  .transcript-search { position: relative; }
+  .search-input { width: 100%; padding: 8px 12px 8px 34px; font-size: 12.5px; }
   .search-icon {
     position: absolute;
     left: 10px;
@@ -598,32 +581,7 @@
     color: #ffffff;
     background: rgba(59, 130, 246, 0.1);
   }
-
-  .btn-action:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  /* Settings Accordion */
-  .settings-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12px;
-    font-family: var(--mono);
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 6px 0;
-  }
-  .settings-toggle:hover { color: var(--text-main); }
-
-  .settings-drawer {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
+  .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* Error Banner */
   .alert-box {
@@ -635,20 +593,12 @@
     gap: 10px;
     line-height: 1.4;
   }
-
   .alert-error {
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
     color: #fca5a5;
   }
 
-  .alert-success {
-    background: var(--accent-glow);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #6ee7b7;
-  }
-
-  /* Utility */
   .hidden { display: none !important; }
 </style>
 </head>
@@ -668,29 +618,29 @@
       </div>
       <div class="engine-status" id="engineStatusBadge">
         <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Connecting engine…</span>
+        <span id="statusText">Checking connection…</span>
       </div>
     </div>
     <h1>Audio Transcriber</h1>
-    <p class="subheading">High-speed speech-to-text powered by Groq Whisper Turbo. Real-time microphone capture or file upload with automatic chunking.</p>
+    <p class="subheading">Full-length speech-to-text powered by Groq Whisper Turbo. Automatic chunking captures entire recordings without missing sections.</p>
   </header>
 
   <!-- Input Studio Card -->
   <main class="card">
     <!-- Mode Tabs -->
     <div class="tab-nav" role="tablist">
-      <button class="tab-btn active" id="tabRecord" role="tab" aria-selected="true" aria-controls="paneRecord">
+      <button class="tab-btn active" id="tabRecord" role="tab" aria-selected="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
         Record Audio
       </button>
-      <button class="tab-btn" id="tabUpload" role="tab" aria-selected="false" aria-controls="paneUpload">
+      <button class="tab-btn" id="tabUpload" role="tab" aria-selected="false">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Upload File
       </button>
     </div>
 
     <!-- Record Pane -->
-    <div id="paneRecord" class="record-zone" role="tabpanel">
+    <div id="paneRecord" class="record-zone">
       <div class="mic-button-wrapper">
         <button class="mic-btn" id="micBtn" aria-label="Start recording audio">
           <svg id="micIcon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -706,7 +656,7 @@
     </div>
 
     <!-- Upload Pane -->
-    <div id="paneUpload" class="hidden" role="tabpanel">
+    <div id="paneUpload" class="hidden">
       <div class="upload-zone" id="dropZone">
         <div class="upload-icon">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -716,12 +666,12 @@
           </svg>
         </div>
         <div class="upload-primary-text">Drag & drop your audio file here</div>
-        <div class="upload-sub-text">MP3, WAV, M4A, AAC, OGG, WEBM, FLAC (any size auto-chunked)</div>
+        <div class="upload-sub-text">MP3, WAV, M4A, AAC, OGG, WEBM, FLAC (any length — auto-split)</div>
       </div>
       <input type="file" id="fileInput" accept="audio/*,video/mp4" class="hidden">
     </div>
 
-    <!-- Audio Player Preview (shown after recording or file selection) -->
+    <!-- Audio Player Preview -->
     <div id="audioPreviewWrap" class="audio-preview-card hidden">
       <div class="audio-player-controls">
         <button class="play-pause-btn" id="playAudioBtn" aria-label="Play audio preview">
@@ -739,10 +689,27 @@
       <audio id="nativeAudio" class="hidden"></audio>
     </div>
 
+    <!-- Direct API Key Banner (Shown automatically if on GitHub Pages without local backend) -->
+    <div id="apiKeyBanner" class="api-key-banner hidden">
+      <div class="api-key-header">
+        <span>🔑 Groq API Key (Direct Browser Mode)</span>
+        <span style="font-size: 11px; color: var(--text-muted);">Stored in your tab memory only</span>
+      </div>
+      <input type="password" id="browserApiKey" placeholder="gsk-..." autocomplete="off">
+    </div>
+
     <!-- Transcription Options -->
     <div class="options-row">
       <div class="field-group">
-        <label class="field-label" for="languageSelect">Audio Language</label>
+        <label class="field-label" for="modelSelect">Whisper Model</label>
+        <select id="modelSelect">
+          <option value="whisper-large-v3-turbo" selected>Whisper Large v3 Turbo (Fast)</option>
+          <option value="whisper-large-v3">Whisper Large v3 (Full / Thorough)</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="languageSelect">Language</label>
         <select id="languageSelect">
           <option value="">Auto-Detect (Multilingual)</option>
           <option value="en">English (en)</option>
@@ -766,8 +733,8 @@
       </div>
 
       <div class="field-group">
-        <label class="field-label" for="promptInput">Vocabulary / Prompt (Optional)</label>
-        <input type="text" id="promptInput" placeholder="Technical terms, proper names, context…">
+        <label class="field-label" for="promptInput">Vocabulary Guide (Optional)</label>
+        <input type="text" id="promptInput" placeholder="e.g. Techkulture, AI, Kizito (leave empty if unsure)">
       </div>
     </div>
 
@@ -790,25 +757,8 @@
       </div>
     </div>
 
-    <!-- Alert / Error message -->
+    <!-- Error message -->
     <div class="alert-box alert-error hidden" id="errorAlert"></div>
-
-    <!-- Collapsible Advanced Settings -->
-    <div>
-      <div class="settings-toggle" id="settingsToggle">
-        <span>⚙️ Advanced Server & Key Settings</span>
-        <span id="settingsArrow">▼</span>
-      </div>
-      <div class="settings-drawer hidden" id="settingsDrawer">
-        <div class="field-group">
-          <label class="field-label" for="customApiKey">Custom API Key (Overrides Backend .env)</label>
-          <input type="password" id="customApiKey" placeholder="gsk-..." autocomplete="off">
-          <span style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
-            Leave empty to use the server's pre-configured backend key.
-          </span>
-        </div>
-      </div>
-    </div>
   </main>
 
   <!-- Output Transcript Card -->
@@ -874,10 +824,10 @@
 </div>
 
 <script>
-  const PROXY_BASE_URL = window.location.origin;
   const NUM_BARS = 28;
+  const PROXY_BASE_URL = window.location.origin;
 
-  // DOM Elements
+  // DOM
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const tabRecord = document.getElementById('tabRecord');
@@ -906,12 +856,12 @@
   const downloadSrtBtn = document.getElementById('downloadSrtBtn');
   const downloadJsonBtn = document.getElementById('downloadJsonBtn');
   const languageSelect = document.getElementById('languageSelect');
+  const modelSelect = document.getElementById('modelSelect');
   const promptInput = document.getElementById('promptInput');
-  const customApiKey = document.getElementById('customApiKey');
-  const settingsToggle = document.getElementById('settingsToggle');
-  const settingsDrawer = document.getElementById('settingsDrawer');
+  const apiKeyBanner = document.getElementById('apiKeyBanner');
+  const browserApiKey = document.getElementById('browserApiKey');
 
-  // Audio Preview Elements
+  // Preview
   const audioPreviewWrap = document.getElementById('audioPreviewWrap');
   const playAudioBtn = document.getElementById('playAudioBtn');
   const playIcon = document.getElementById('playIcon');
@@ -928,13 +878,15 @@
   let audioChunks = [];
   let recordedBlob = null;
   let uploadedFile = null;
+  let detectedDuration = 0;
   let recordStartTime = 0;
   let recordTimerInterval = null;
   let audioCtx = null, analyser = null, sourceNode = null, animFrame = null, audioStream = null;
   let rawSegments = [];
   let fullTranscriptText = '';
+  let backendOnline = false;
 
-  // Initialize visualizer bars
+  // Visualizer Bars
   for (let i = 0; i < NUM_BARS; i++) {
     const bar = document.createElement('div');
     bar.className = 'bar';
@@ -942,34 +894,39 @@
   }
   const barElements = [...visualizerBars.children];
 
-  // Check Backend Status on load
-  async function checkBackendStatus() {
+  // Restore saved browser key if any
+  const savedKey = sessionStorage.getItem('groq_key') || '';
+  if (savedKey) browserApiKey.value = savedKey;
+  browserApiKey.addEventListener('input', () => {
+    sessionStorage.setItem('groq_key', browserApiKey.value.trim());
+    updateTranscribeButtonState();
+  });
+
+  // Check Backend Status
+  async function checkBackend() {
     try {
       const res = await fetch(PROXY_BASE_URL + '/api/status');
       if (res.ok) {
         const data = await res.json();
         if (data.hasBackendKey) {
+          backendOnline = true;
           statusDot.className = 'status-dot online';
-          statusText.textContent = 'Engine Ready (Groq Whisper Turbo)';
+          statusText.textContent = 'Backend Engine Ready';
+          apiKeyBanner.classList.add('hidden');
           return;
         }
       }
-      statusDot.className = 'status-dot';
-      statusText.textContent = 'Backend Key Missing (Check .env)';
-    } catch (e) {
-      statusDot.className = 'status-dot offline';
-      statusText.textContent = 'Server Offline';
-    }
+    } catch (_) {}
+
+    // Fallback: Direct Browser Mode (e.g. on GitHub Pages)
+    backendOnline = false;
+    statusDot.className = 'status-dot direct';
+    statusText.textContent = 'Direct Mode (Enter Key Below)';
+    apiKeyBanner.classList.remove('hidden');
   }
-  checkBackendStatus();
+  checkBackend();
 
-  // Settings Toggle
-  settingsToggle.addEventListener('click', () => {
-    const isHidden = settingsDrawer.classList.toggle('hidden');
-    document.getElementById('settingsArrow').textContent = isHidden ? '▼' : '▲';
-  });
-
-  // Tab switching
+  // Tabs
   tabRecord.addEventListener('click', () => switchTab('record'));
   tabUpload.addEventListener('click', () => switchTab('upload'));
 
@@ -977,8 +934,6 @@
     currentMode = mode;
     tabRecord.classList.toggle('active', mode === 'record');
     tabUpload.classList.toggle('active', mode === 'upload');
-    tabRecord.setAttribute('aria-selected', mode === 'record');
-    tabUpload.setAttribute('aria-selected', mode === 'upload');
     paneRecord.classList.toggle('hidden', mode !== 'record');
     paneUpload.classList.toggle('hidden', mode !== 'upload');
     updateTranscribeButtonState();
@@ -988,57 +943,58 @@
     errorAlert.textContent = msg;
     errorAlert.classList.remove('hidden');
   }
-
   function clearError() {
     errorAlert.classList.add('hidden');
     errorAlert.textContent = '';
   }
 
-  function updateTranscribeButtonState() {
-    const hasSource = (currentMode === 'record' && recordedBlob) || (currentMode === 'upload' && uploadedFile);
-    transcribeBtn.disabled = !hasSource || isRecording;
+  function getEffectiveApiKey() {
+    return browserApiKey.value.trim();
   }
 
-  // --- Audio Preview Player ---
+  function updateTranscribeButtonState() {
+    const hasSource = (currentMode === 'record' && recordedBlob) || (currentMode === 'upload' && uploadedFile);
+    const keyReady = backendOnline || getEffectiveApiKey().length > 5;
+    transcribeBtn.disabled = !hasSource || isRecording || (!backendOnline && !keyReady);
+  }
+
+  // Audio Preview
   function setupAudioPreview(blob, filename) {
     const url = URL.createObjectURL(blob);
     nativeAudio.src = url;
     audioPreviewTitle.textContent = filename;
     audioPreviewWrap.classList.remove('hidden');
     nativeAudio.load();
+    nativeAudio.onloadedmetadata = () => {
+      detectedDuration = nativeAudio.duration || 0;
+      audioTimeLabel.textContent = '0:00 / ' + formatTime(detectedDuration);
+    };
   }
 
   playAudioBtn.addEventListener('click', () => {
-    if (nativeAudio.paused) {
-      nativeAudio.play();
-    } else {
-      nativeAudio.pause();
-    }
+    if (nativeAudio.paused) nativeAudio.play();
+    else nativeAudio.pause();
   });
 
   nativeAudio.addEventListener('play', () => {
     playIcon.classList.add('hidden');
     pauseIcon.classList.remove('hidden');
   });
-
   nativeAudio.addEventListener('pause', () => {
     playIcon.classList.remove('hidden');
     pauseIcon.classList.add('hidden');
   });
-
   nativeAudio.addEventListener('timeupdate', () => {
     const cur = nativeAudio.currentTime;
     const dur = nativeAudio.duration || 1;
     audioSlider.value = (cur / dur) * 100;
     audioTimeLabel.textContent = formatTime(cur) + ' / ' + formatTime(dur);
   });
-
   nativeAudio.addEventListener('ended', () => {
     playIcon.classList.remove('hidden');
     pauseIcon.classList.add('hidden');
     audioSlider.value = 0;
   });
-
   audioSlider.addEventListener('input', () => {
     if (nativeAudio.duration) {
       nativeAudio.currentTime = (audioSlider.value / 100) * nativeAudio.duration;
@@ -1046,20 +1002,20 @@
   });
 
   function formatTime(secs) {
-    if (isNaN(secs)) return '0:00';
+    if (isNaN(secs) || !isFinite(secs)) return '0:00';
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
     return m + ':' + (s < 10 ? '0' : '') + s;
   }
 
-  // --- Recording Studio ---
+  // Recording
   micBtn.addEventListener('click', async () => {
     clearError();
     if (!isRecording) {
       try {
         audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (err) {
-        showError('Could not access your microphone. Please grant permission in your browser.');
+        showError('Could not access microphone. Please allow permissions in your browser.');
         return;
       }
 
@@ -1078,17 +1034,18 @@
         const mime = audioChunks[0]?.type || 'audio/webm';
         recordedBlob = new Blob(audioChunks, { type: mime });
         updateTranscribeButtonState();
-        setupAudioPreview(recordedBlob, 'recording_' + new Date().toISOString().slice(11, 19).replace(/:/g, '-') + '.webm');
+        setupAudioPreview(recordedBlob, 'recording.webm');
       };
 
       mediaRecorder.start(250);
       isRecording = true;
       micBtn.classList.add('recording');
-      micBtn.setAttribute('aria-label', 'Stop recording audio');
+      micBtn.setAttribute('aria-label', 'Stop recording');
       recordHint.textContent = 'Recording live… Click to stop';
       recordStartTime = Date.now();
       recordTimerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+        detectedDuration = elapsed;
         const m = Math.floor(elapsed / 60);
         const s = elapsed % 60;
         recordTimer.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
@@ -1097,14 +1054,13 @@
       startVisualizer(audioStream);
       updateTranscribeButtonState();
     } else {
-      // Stop recording
       mediaRecorder.stop();
       audioStream.getTracks().forEach(t => t.stop());
       stopVisualizer();
       clearInterval(recordTimerInterval);
       isRecording = false;
       micBtn.classList.remove('recording');
-      micBtn.setAttribute('aria-label', 'Start recording audio');
+      micBtn.setAttribute('aria-label', 'Start recording');
       recordHint.textContent = 'Recording captured! Ready to transcribe.';
       updateTranscribeButtonState();
     }
@@ -1141,7 +1097,7 @@
     if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();
   }
 
-  // --- Upload Handling ---
+  // Upload
   dropZone.addEventListener('click', () => fileInput.click());
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -1160,33 +1116,33 @@
     clearError();
     const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
     dropZone.querySelector('.upload-primary-text').textContent = 'Selected: ' + file.name;
-    dropZone.querySelector('.upload-sub-text').textContent = `${file.type || 'audio file'} • ${sizeMb} MB`;
+    dropZone.querySelector('.upload-sub-text').textContent = `${file.type || 'audio'} • ${sizeMb} MB`;
     setupAudioPreview(file, file.name);
     updateTranscribeButtonState();
   }
 
-  // --- WAV Conversion & Resampling (16kHz mono) ---
+  // WAV Resampling
   function floatArrayToWavBlob(floatSamples, sampleRate) {
     const numSamples = floatSamples.length;
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
 
-    function writeString(offset, str) {
+    function writeStr(offset, str) {
       for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
     }
 
-    writeString(0, 'RIFF');
+    writeStr(0, 'RIFF');
     view.setUint32(4, 36 + numSamples * 2, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true); // PCM
     view.setUint16(22, 1, true); // Mono
     view.setUint32(24, sampleRate, true);
     view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true); // 16-bit mono
+    view.setUint16(32, 2, true);
     view.setUint16(34, 16, true);
-    writeString(36, 'data');
+    writeStr(36, 'data');
     view.setUint32(40, numSamples * 2, true);
 
     let offset = 44;
@@ -1227,28 +1183,38 @@
     return { samples: rendered.getChannelData(0), sampleRate: targetRate, duration: decoded.duration };
   }
 
-  // --- API Client ---
+  // Unified API Call (Backend Proxy OR Direct Groq API)
   async function callTranscribeApi(file, options = {}) {
     const form = new FormData();
     form.append('file', file);
-    form.append('model', 'whisper-large-v3-turbo');
+    form.append('model', options.model || 'whisper-large-v3-turbo');
     form.append('response_format', 'verbose_json');
+    form.append('temperature', '0.0');
 
     if (options.language) form.append('language', options.language);
     if (options.prompt) form.append('prompt', options.prompt);
 
     const headers = {};
-    const key = customApiKey.value.trim();
-    if (key) headers['Authorization'] = 'Bearer ' + key;
+    const key = getEffectiveApiKey();
 
-    const res = await fetch(PROXY_BASE_URL + '/api/transcribe', {
+    let targetEndpoint = PROXY_BASE_URL + '/api/transcribe';
+    if (!backendOnline) {
+      // Direct call to Groq API (supported via CORS)
+      targetEndpoint = 'https://api.groq.com/openai/v1/audio/transcriptions';
+      if (!key) throw new Error('Please enter your Groq API key in the key field.');
+      headers['Authorization'] = 'Bearer ' + key;
+    } else if (key) {
+      headers['Authorization'] = 'Bearer ' + key;
+    }
+
+    const res = await fetch(targetEndpoint, {
       method: 'POST',
       headers,
       body: form
     });
 
     if (!res.ok) {
-      let errMsg = 'Transcription failed (' + res.status + ')';
+      let errMsg = 'Transcription request failed (' + res.status + ')';
       try {
         const data = await res.json();
         errMsg = data?.error?.message || data?.message || errMsg;
@@ -1286,52 +1252,63 @@
     downloadJsonBtn.disabled = !hasContent;
   }
 
-  // --- Main Transcription Orchestration ---
+  // Main Transcribe Trigger
   transcribeBtn.addEventListener('click', async () => {
     clearError();
     const sourceFile = currentMode === 'record'
-      ? (recordedBlob ? new File([recordedBlob], 'mic_recording.webm', { type: recordedBlob.type || 'audio/webm' }) : null)
+      ? (recordedBlob ? new File([recordedBlob], 'recording.webm', { type: recordedBlob.type || 'audio/webm' }) : null)
       : uploadedFile;
 
     if (!sourceFile) {
-      showError('Please record audio or upload a file first.');
+      showError('Please record audio or upload an audio file first.');
       return;
     }
 
     transcribeBtn.disabled = true;
-    transcribeBtn.innerHTML = 'Transcribing…';
+    transcribeBtn.textContent = 'Transcribing…';
     transcriptBox.textContent = '';
     transcriptBox.classList.add('empty');
     rawSegments = [];
     fullTranscriptText = '';
     updateTranscriptStats('');
 
+    // Clean user prompt (filter out email addresses or invalid syntax)
+    let userPrompt = promptInput.value.trim();
+    if (userPrompt && userPrompt.includes('@') && !userPrompt.includes(' ')) {
+      // If user typed an email address, strip it so it doesn't trick Whisper into stopping early
+      userPrompt = '';
+    }
+
     const baseOptions = {
+      model: modelSelect.value || 'whisper-large-v3-turbo',
       language: languageSelect.value.trim() || undefined,
-      prompt: promptInput.value.trim() || undefined
+      prompt: userPrompt || undefined
     };
 
-    const DIRECT_LIMIT = 24 * 1024 * 1024; // 24MB
-
     try {
-      if (sourceFile.size <= DIRECT_LIMIT) {
-        setProgress(25, 'Sending audio to Groq Whisper…');
+      // CRITICAL FIX: Duration-based check
+      // For any audio longer than 180s (3 minutes) OR size > 20MB, chunk it!
+      // This ensures 15-minute or 1-hour files don't truncate early.
+      const shouldChunk = detectedDuration > 180 || sourceFile.size > 20 * 1024 * 1024;
+
+      if (!shouldChunk && detectedDuration > 0 && detectedDuration <= 180) {
+        setProgress(30, 'Transcribing audio with Whisper Turbo…');
         const result = await callTranscribeApi(sourceFile, baseOptions);
-        
         fullTranscriptText = (result.text || '').trim();
         rawSegments = result.segments || [];
 
         transcriptBox.textContent = fullTranscriptText || '(No speech detected)';
         transcriptBox.classList.remove('empty');
         updateTranscriptStats(fullTranscriptText);
-        setProgress(100, 'Transcription complete! ✨');
+        setProgress(100, 'Complete! ✨');
       } else {
-        // Large File Chunking via Clean 16kHz Mono Decoded WAV
-        setProgress(5, 'Decoding audio for smart chunking…');
+        // High-fidelity Multi-Chunk Decoding Pipeline
+        setProgress(5, 'Analyzing and decoding audio stream…');
         const arrayBuf = await sourceFile.arrayBuffer();
         const { samples, sampleRate, duration } = await decodeTo16kMono(arrayBuf);
 
-        const CHUNK_SECONDS = 400; // ~6.6 minutes per chunk
+        // 180 seconds (~3 minutes) per chunk for optimal Whisper accuracy & no truncation
+        const CHUNK_SECONDS = 180;
         const chunkLength = CHUNK_SECONDS * sampleRate;
         const totalChunks = Math.max(1, Math.ceil(samples.length / chunkLength));
 
@@ -1345,11 +1322,11 @@
           const wavBlob = floatArrayToWavBlob(chunkSlice, sampleRate);
           const chunkFile = new File([wavBlob], `chunk_${c + 1}.wav`, { type: 'audio/wav' });
 
-          const pct = Math.round(((c) / totalChunks) * 90) + 10;
-          setProgress(pct, `Transcribing chunk ${c + 1} of ${totalChunks}…`);
+          const pct = Math.round(((c + 0.5) / totalChunks) * 90) + 5;
+          setProgress(pct, `Transcribing section ${c + 1} of ${totalChunks}… (${Math.round((c / totalChunks) * (duration / 60))}m / ${Math.round(duration / 60)}m)`);
 
-          // Pass trailing text as prompt for acoustic context continuity without duplicating audio words
           const chunkOptions = {
+            model: baseOptions.model,
             language: baseOptions.language,
             prompt: lastPrompt.slice(-200) || undefined
           };
@@ -1378,11 +1355,11 @@
         }
 
         fullTranscriptText = accumulatedText;
-        setProgress(100, `Done! Merged ${totalChunks} chunks seamlessly ✨`);
+        setProgress(100, `Done! Full ${Math.round(duration / 60)}m audio transcribed across ${totalChunks} sections ✨`);
       }
     } catch (err) {
       console.error(err);
-      showError(err.message || 'An unexpected error occurred during transcription. Make sure the proxy is running.');
+      showError(err.message || 'An error occurred during transcription.');
     } finally {
       transcribeBtn.disabled = false;
       transcribeBtn.innerHTML = `
@@ -1392,28 +1369,25 @@
         <span>Start Transcription</span>
       `;
       updateTranscribeButtonState();
-      setTimeout(hideProgress, 4000);
+      setTimeout(hideProgress, 4500);
     }
   });
 
-  // --- Search within Transcript ---
+  // In-Transcript Search
   searchTranscript.addEventListener('input', () => {
     const q = searchTranscript.value.trim().toLowerCase();
     if (!fullTranscriptText) return;
-
     if (!q) {
       transcriptBox.textContent = fullTranscriptText;
       return;
     }
-
-    // Escape regex characters
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(${escaped})`, 'gi');
     const highlighted = fullTranscriptText.replace(regex, '<mark style="background:#fef08a;color:#1e293b;border-radius:2px;padding:0 2px;">$1</mark>');
     transcriptBox.innerHTML = highlighted;
   });
 
-  // --- Export Actions ---
+  // Exports
   copyBtn.addEventListener('click', async () => {
     if (!fullTranscriptText) return;
     try {
@@ -1421,12 +1395,12 @@
       copyBtnText.textContent = 'Copied! ✓';
       setTimeout(() => copyBtnText.textContent = 'Copy Text', 1500);
     } catch (e) {
-      const textarea = document.createElement('textarea');
-      textarea.value = fullTranscriptText;
-      document.body.appendChild(textarea);
-      textarea.select();
+      const ta = document.createElement('textarea');
+      ta.value = fullTranscriptText;
+      document.body.appendChild(ta);
+      ta.select();
       document.execCommand('copy');
-      document.body.removeChild(textarea);
+      document.body.removeChild(ta);
       copyBtnText.textContent = 'Copied! ✓';
       setTimeout(() => copyBtnText.textContent = 'Copy Text', 1500);
     }
@@ -1445,7 +1419,6 @@
         return `${i + 1}\n${formatSrtTime(seg.start)} --> ${formatSrtTime(seg.end)}\n${seg.text.trim()}\n`;
       }).join('\n');
     } else {
-      // Fallback: estimate time segments
       srtContent = `1\n00:00:00,000 --> 00:05:00,000\n${fullTranscriptText}\n`;
     }
     downloadFile(srtContent, 'transcript.srt', 'text/plain');
