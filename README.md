@@ -1,84 +1,96 @@
-# Audio Transcriber
+# Audio Transcriber Studio 🎙️
 
-Fast, local audio transcription using Groq's Whisper model. Record from your mic or upload files (any size — auto-chunked). All audio stays in your browser; API key never leaves your tab.
+Fast, high-accuracy audio transcription platform powered by **Groq's Whisper Large V3 Turbo** model. Record audio directly from your microphone with live visualizer meters, or upload audio files of any size with automatic client-side chunking.
 
-## Features
+---
 
-- **Record or upload** — mic input or drag-and-drop files (mp3, wav, m4a, webm, ogg)
-- **Auto-chunking** — files over 24MB split automatically, merged seamlessly
-- **MP3 optimization** — large MP3s split raw (no decoding overhead)
-- **Fast inference** — Groq's Whisper Turbo model
-- **Private** — runs in your browser; key stored in tab memory only
+## 🚀 Features
 
-## Setup
+- **Microphone Recording**: Studio recorder with live audio waveform visualizer, recording timer, and pause/resume.
+- **Universal Audio Uploads**: Drag-and-drop support for MP3, WAV, M4A, AAC, OGG, WEBM, FLAC, and MP4.
+- **Smart Audio Chunking**: Files $>24\text{MB}$ are automatically resampled to mono 16kHz WAV and chunked seamlessly with context prompt continuity (no word duplication).
+- **Built-in Audio Preview Player**: Listen back to recorded or uploaded audio before and during transcription.
+- **Multilingual Support**: Supports Auto-Detection as well as 15+ specific languages (English, Spanish, French, German, Yoruba, Igbo, Hausa, Arabic, etc.).
+- **Domain Vocabulary Prompting**: Custom prompt guidance for technical jargon, acronyms, or proper names.
+- **Multi-Format Export Hub**:
+  - 📋 One-click Copy to Clipboard
+  - 📄 Plain Text (`.txt`)
+  - 🎬 Subtitles (`.srt` with timestamps)
+  - 📊 Structured Data (`.json` with segments)
+- **Search within Transcript**: Real-time keyword highlighter.
+- **Backend Key Storage**: Groq API key is stored securely on the backend server (`.env`) with client override options.
 
-### 1. Get a Groq API Key
+---
 
-1. Go to [console.groq.com/keys](https://console.groq.com/keys)
-2. Create a new API key (free tier includes quota)
-3. Copy it
+## 🛠️ Quick Start
 
-### 2. Run the Proxy Server
-
-The browser can't call Groq directly due to CORS restrictions. Start a simple proxy:
+### 1. Clone & Install Dependencies
 
 ```bash
+git clone https://github.com/kizito-nwaodu/audio-transcriber.git
+cd audio-transcriber
 npm install
+```
+
+### 2. Configure Environment
+
+Create a `.env` file from the provided `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Add your Groq API key to `.env`:
+
+```env
+GROQ_API_KEY=gsk_your_groq_api_key_here
+PORT=3000
+```
+
+> **Note**: Get a free Groq API key at [console.groq.com/keys](https://console.groq.com/keys).
+
+### 3. Start the Server
+
+```bash
 npm start
 ```
 
-The proxy will run on `http://localhost:3000`.
+Open `http://localhost:3000` in your web browser.
 
-### 3. Open the App
+---
 
-Open `index.html` in your browser. The app automatically uses `http://localhost:3000` as the proxy.
+## 🌐 API Endpoints
 
-## How It Works
+The proxy server provides the following endpoints:
 
-1. **Verification**: Click "Verify" to test your key against Groq's models endpoint (via proxy)
-2. **Record or Upload**: Mic input saves as WebM; file uploads detected by MIME type
-3. **Chunking**:
-   - Files ≤24MB: sent directly
-   - MP3 files: raw bytes split at 20MB boundaries (no decoding)
-   - Other large files: decoded to mono 16kHz, split into 8-min chunks with 2-sec overlap
-4. **Transcription**: Each chunk sent to `POST /api/transcribe` (proxy forwards to Groq)
-5. **Merge**: Transcripts joined with spaces; progress updates in real time
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | `GET` | Server health check and timestamp |
+| `/api/status` | `GET` | Returns backend engine and API key status |
+| `/api/models` | `GET` | Verifies key and fetches available Groq models |
+| `/api/transcribe` | `POST` | Streams multipart audio to Groq Whisper Turbo |
 
-## Deployment
+---
 
-To run publicly (e.g., Vercel, Heroku, Railway):
+## ☁️ Deployment
 
-1. Deploy `proxy.js` + `package.json` (this also serves `index.html` as a static file)
-2. Open the deployed URL — the app detects the proxy address automatically via `window.location.origin`, so no code changes are needed
+### Render / Railway / Fly.io / VPS
+1. Set the build command to `npm install`.
+2. Set the start command to `npm start`.
+3. Add `GROQ_API_KEY` to your environment variables in the hosting dashboard.
 
-Example (Vercel):
-```bash
-vercel deploy
-# Then just open the URL Vercel gives you
-```
+### Vercel / Netlify
+Deploy the Node server as a serverless backend function or container and set `GROQ_API_KEY` in project environment variables.
 
-## API Endpoints
+---
 
-The proxy provides:
+## 🔒 Security & Privacy
 
-- `GET /health` — Server health check
-- `GET /api/models` — Forward to Groq's `/v1/models` (key verification)
-- `POST /api/transcribe` — Forward to Groq's `/v1/audio/transcriptions` (transcribe chunk)
+- Your `GROQ_API_KEY` is kept on your private backend server in `.env` (ignored by git).
+- Audio is never stored on disk; it is processed in memory / streamed directly to Groq.
 
-All require `Authorization: Bearer <groq-key>` header.
+---
 
-## Troubleshooting
+## 📄 License
 
-- **"Failed to fetch"** — Proxy not running or unreachable. Restart with `npm start`.
-- **"Invalid key"** — Verify the key at console.groq.com/keys.
-- **"Could not decode this file"** — Non-MP3 large files need decoding. Try MP3 or smaller files.
-
-## Privacy
-
-- Your API key is stored only in browser memory (your tab)
-- Audio is never saved; only transcription results
-- Proxy only relays requests; it doesn't log or store data
-
-## License
-
-MIT
+MIT © [Kizito Nwaodu](https://github.com/kizito-nwaodu)

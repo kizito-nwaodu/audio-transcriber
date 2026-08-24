@@ -1,16 +1,26 @@
 {
-  "name": "audio-transcriber-proxy",
-  "version": "1.0.0",
+  "name": "audio-transcriber",
+  "version": "2.0.0",
   "type": "module",
-  "description": "CORS proxy for Groq audio transcription API",
+  "description": "Studio audio transcription application powered by Groq Whisper Turbo",
   "main": "proxy.js",
   "scripts": {
     "start": "node proxy.js",
     "dev": "node --watch proxy.js"
   },
+  "keywords": [
+    "groq",
+    "whisper",
+    "transcription",
+    "speech-to-text",
+    "audio",
+    "subtitles"
+  ],
+  "author": "Kizito Nwaodu",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "node-fetch": "^3.3.0"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
   }
 }
